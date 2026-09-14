@@ -1,5 +1,7 @@
 import { Head, router, usePage } from "@inertiajs/react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, PhilippinePeso, ScanQrCode } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type MenuItem = {
     id: number;
@@ -138,6 +140,60 @@ export default function Welcome({ user, menuItems }: Props) {
             },
         );
 
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const cards = [BalanceCard, WelcomeCard];
+
+    function BalanceCard() {
+        return (
+            <div className="relative mb-6 rounded-md bg-stone-900 p-6 text-white shadow-xl">
+                <p className="text-sm text-stone-300">Available balance</p>
+                <p className="mt-1 text-4xl font-black">
+                    {money(user.balance)}
+                </p>
+                <button
+                    onClick={() => setModal("scanner")}
+                    className="mt-4 w-full cursor-pointer rounded-sm bg-white px-4 py-3 font-bold text-stone-900"
+                >
+                    ⌘ Scan
+                </button>
+            </div>
+        );
+    }
+
+    function WelcomeCard() {
+        return (
+            <div className="relative mb-7 rounded-md bg-orange-500 p-7 text-white">
+                <p className="font-semibold opacity-85">
+                    Hello, {user.name.split(" ")[0]}!
+                </p>
+                <h2 className="mt-1 text-3xl font-black">
+                    What are you craving?
+                </h2>
+                <p className="mt-2 max-w-md text-orange-50">
+                    Pick your favorites, then scan the Pay QR at the counter.
+                </p>
+            </div>
+        );
+    }
+
+    const CardArrow = () => {
+        return (
+            <button
+                onClick={() =>
+                    setCurrentIndex((currentIndex + 1) % cards.length)
+                }
+                className={cn(
+                    "absolute top-7 right-7 cursor-pointer rounded-full px-1 py-1",
+                    currentIndex === 0
+                        ? "bg-black text-white shadow-md shadow-stone-900"
+                        : "bg-white text-orange-700 shadow-md shadow-orange-600",
+                )}
+            >
+                <ArrowRight size={18} />
+            </button>
+        );
+    };
+
     return (
         <>
             <Head title="Campus Canteen" />
@@ -146,27 +202,33 @@ export default function Welcome({ user, menuItems }: Props) {
                     <div>
                         <h1 className="text-2xl font-black">Canteen</h1>
                     </div>
-                    <button
-                        onClick={() => setModal("scanner")}
-                        className="rounded-md-2xl bg-stone-900 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-stone-300"
-                    >
-                        ⌘ Scan QR
-                    </button>
+
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setModal("scanner")}
+                            className="relative flex cursor-pointer items-center gap-1 rounded-sm bg-stone-900 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-stone-300 md:hidden"
+                        >
+                            <ScanQrCode size={18} />
+                            Scan
+                        </button>
+                    </div>
                 </header>
-                <section className="mx-auto grid max-w-7xl gap-7 px-5 pb-10 sm:px-8 lg:grid-cols-[1fr_350px]">
+
+                <section className="mx-auto grid max-w-7xl gap-7 px-5 pb-10 sm:px-8 md:grid-cols-[1fr_250px] lg:grid-cols-[1fr_350px]">
                     <div>
-                        <div className="mb-7 rounded-md bg-orange-500 p-7 text-white">
-                            <p className="font-semibold opacity-85">
-                                Hello, {user.name.split(" ")[0]}!
-                            </p>
-                            <h2 className="mt-1 text-3xl font-black">
-                                What are you craving?
-                            </h2>
-                            <p className="mt-2 max-w-md text-orange-50">
-                                Pick your favorites, then scan the Pay QR at the
-                                counter.
-                            </p>
-                        </div>
+                        {cards.map((Card, index) => (
+                            <div
+                                key={index}
+                                className={cn(
+                                    "relative",
+                                    currentIndex === index ? "hidden" : "",
+                                )}
+                            >
+                                <Card />
+                                <CardArrow />
+                            </div>
+                        ))}
+
                         <div className="mb-4">
                             <h2 className="text-2xl font-black">
                                 Today’s menu
@@ -203,21 +265,8 @@ export default function Welcome({ user, menuItems }: Props) {
                             ))}
                         </div>
                     </div>
-                    <aside className="space-y-5 lg:sticky lg:top-5 lg:h-fit">
-                        <div className="rounded-md bg-stone-900 p-6 text-white shadow-xl">
-                            <p className="text-sm text-stone-300">
-                                Available balance
-                            </p>
-                            <p className="mt-1 text-4xl font-black">
-                                {money(user.balance)}
-                            </p>
-                            <button
-                                onClick={() => setModal("scanner")}
-                                className="rounded-md-xl mt-5 w-full bg-white px-4 py-3 font-bold text-stone-900"
-                            >
-                                Scan QR to load or pay
-                            </button>
-                        </div>
+                    <aside className="hidden space-y-5 md:block lg:sticky lg:top-5 lg:h-fit">
+                        <BalanceCard />
                         <div className="rounded-md bg-white p-5 shadow-sm ring-1 ring-stone-100">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-black">
@@ -262,7 +311,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                                             -1,
                                                         )
                                                     }
-                                                    className="h-6 w-6 font-bold"
+                                                    className="h-6 w-6 cursor-pointer font-bold"
                                                 >
                                                     −
                                                 </button>
@@ -276,7 +325,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                                             1,
                                                         )
                                                     }
-                                                    className="h-6 w-6 font-bold"
+                                                    className="h-6 w-6 cursor-pointer font-bold"
                                                 >
                                                     +
                                                 </button>
@@ -288,12 +337,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                             <span>Total</span>
                                             <span>{money(total)}</span>
                                         </div>
-                                        <button
-                                            onClick={() => setModal("pay")}
-                                            className="rounded-md-xl mt-4 w-full bg-orange-500 px-4 py-3 font-bold text-white"
-                                        >
-                                            Review & pay
-                                        </button>
+
                                         {errors.cart && (
                                             <p className="mt-2 text-sm text-red-600">
                                                 {errors.cart}
