@@ -1,12 +1,6 @@
 import { Head, router, usePage } from "@inertiajs/react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import {
-    ArrowRight,
-    PhilippinePeso,
-    ScanQrCode,
-    ShoppingCart,
-    XIcon,
-} from "lucide-react";
+import { ArrowRight, ScanQrCode, ShoppingCart, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type MenuItem = {
@@ -18,7 +12,7 @@ type MenuItem = {
 };
 type CartItem = MenuItem & { quantity: number };
 type Props = { user: { name: string; balance: number }; menuItems: MenuItem[] };
-type ScanMode = "scanner" | "load" | "pay" | "cart" | null;
+type ScanMode = "load" | "pay" | "cart" | "load-display" | "pay-display" | null;
 const money = (amount: number) =>
     new Intl.NumberFormat("en-PH", {
         style: "currency",
@@ -161,7 +155,7 @@ export default function Welcome({ user, menuItems }: Props) {
                     {money(user.balance)}
                 </p>
                 <button
-                    onClick={() => setModal("scanner")}
+                    onClick={() => setModal("load")}
                     className="mt-4 flex w-full cursor-pointer items-center justify-center gap-1 rounded-sm bg-white px-4 py-3 font-bold text-stone-900"
                 >
                     <ScanQrCode size={18} /> Load
@@ -270,7 +264,7 @@ export default function Welcome({ user, menuItems }: Props) {
                             </div>
 
                             <button
-                                onClick={() => setModal("scanner")}
+                                onClick={() => setModal("pay")}
                                 className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-md bg-stone-900 py-2 text-white"
                             >
                                 <ScanQrCode size={18} />
@@ -386,7 +380,7 @@ export default function Welcome({ user, menuItems }: Props) {
                         >
                             <XIcon size={16} />
                         </button>
-                        {modal === "scanner" && (
+                        {(modal === "load" || modal === "pay") && (
                             <>
                                 <p className="text-sm font-bold text-orange-600">
                                     QR SCANNER
@@ -412,29 +406,34 @@ export default function Welcome({ user, menuItems }: Props) {
                                         Start camera
                                     </button>
                                 )}
-                                <div className="mt-5 grid grid-cols-2 gap-3">
-                                    <button
-                                        onClick={() => {
-                                            stopCamera();
-                                            setModal("load");
-                                        }}
-                                        className="cursor-pointer rounded-md bg-orange-100 py-3 text-sm font-bold text-orange-700"
-                                    >
-                                        Demo Load QR
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            stopCamera();
-                                            setModal("pay");
-                                        }}
-                                        className="cursor-pointer rounded-md bg-stone-100 py-3 text-sm font-bold"
-                                    >
-                                        Demo Pay QR
-                                    </button>
+                                <div className="mt-5">
+                                    {modal === "load" && (
+                                        <button
+                                            onClick={() => {
+                                                stopCamera();
+                                                setModal("load-display");
+                                            }}
+                                            className="w-full cursor-pointer rounded-md bg-orange-100 py-3 text-sm font-bold text-orange-700"
+                                        >
+                                            Demo Load QR
+                                        </button>
+                                    )}
+
+                                    {modal === "pay" && (
+                                        <button
+                                            onClick={() => {
+                                                stopCamera();
+                                                setModal("pay-display");
+                                            }}
+                                            className="w-full cursor-pointer rounded-md bg-stone-100 py-3 text-sm font-bold"
+                                        >
+                                            Demo Pay QR
+                                        </button>
+                                    )}
                                 </div>
                             </>
                         )}
-                        {modal === "load" && (
+                        {modal === "load-display" && (
                             <form onSubmit={submitLoad}>
                                 <p className="text-sm font-bold text-orange-600">
                                     LOAD WALLET
@@ -462,12 +461,12 @@ export default function Welcome({ user, menuItems }: Props) {
                                         {errors.amount}
                                     </p>
                                 )}
-                                <button className="rounded-md-xl mt-4 w-full bg-orange-500 py-3 font-bold text-white">
+                                <button className="rounded-md-xl mt-4 w-full cursor-pointer bg-orange-500 py-3 font-bold text-white">
                                     Confirm load
                                 </button>
                             </form>
                         )}
-                        {modal === "pay" && (
+                        {modal === "pay-display" && (
                             <>
                                 <p className="text-sm font-bold text-orange-600">
                                     PAY ORDER
@@ -507,7 +506,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                         <button
                                             disabled={total > user.balance}
                                             onClick={pay}
-                                            className="rounded-md-xl mt-5 w-full bg-stone-900 py-3 font-bold text-white disabled:opacity-40"
+                                            className="rounded-md-xl mt-5 w-full cursor-pointer bg-stone-900 py-3 font-bold text-white disabled:opacity-40"
                                         >
                                             Pay {money(total)}
                                         </button>
