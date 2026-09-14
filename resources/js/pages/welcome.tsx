@@ -1,6 +1,12 @@
 import { Head, router, usePage } from "@inertiajs/react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, PhilippinePeso, ScanQrCode } from "lucide-react";
+import {
+    ArrowRight,
+    PhilippinePeso,
+    ScanQrCode,
+    ShoppingCart,
+    XIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type MenuItem = {
@@ -12,7 +18,7 @@ type MenuItem = {
 };
 type CartItem = MenuItem & { quantity: number };
 type Props = { user: { name: string; balance: number }; menuItems: MenuItem[] };
-type ScanMode = "scanner" | "load" | "pay" | null;
+type ScanMode = "scanner" | "load" | "pay" | "cart" | null;
 const money = (amount: number) =>
     new Intl.NumberFormat("en-PH", {
         style: "currency",
@@ -29,6 +35,10 @@ export default function Welcome({ user, menuItems }: Props) {
     const { errors } = usePage().props as { errors: Record<string, string> };
     const total = useMemo(
         () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+        [cart],
+    );
+    const cartItemCount = useMemo(
+        () => cart.reduce((sum, item) => sum + item.quantity, 0),
         [cart],
     );
     const stopCamera = () => {
@@ -152,9 +162,9 @@ export default function Welcome({ user, menuItems }: Props) {
                 </p>
                 <button
                     onClick={() => setModal("scanner")}
-                    className="mt-4 w-full cursor-pointer rounded-sm bg-white px-4 py-3 font-bold text-stone-900"
+                    className="mt-4 flex w-full cursor-pointer items-center justify-center gap-1 rounded-sm bg-white px-4 py-3 font-bold text-stone-900"
                 >
-                    ⌘ Scan
+                    <ScanQrCode size={18} /> Scan
                 </button>
             </div>
         );
@@ -194,6 +204,91 @@ export default function Welcome({ user, menuItems }: Props) {
         );
     };
 
+    function CartComponent() {
+        return (
+            <div
+                className={cn(
+                    "rounded-md bg-white shadow-sm ring-1 ring-stone-100",
+                    modal === "cart" ? "shadow-none ring-0" : "",
+                )}
+            >
+                <p className="mb-1 text-sm font-bold text-orange-600">CART</p>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-black">Your order</h2>
+                    <span className="rounded-md-full bg-orange-100 px-2 py-1 text-xs font-bold text-orange-700">
+                        {cart.reduce((sum, item) => sum + item.quantity, 0)}{" "}
+                        items
+                    </span>
+                </div>
+                {cart.length === 0 ? (
+                    <p className="py-9 text-center text-sm text-stone-400">
+                        Your cart is waiting for something delicious.
+                    </p>
+                ) : (
+                    <div className="mt-4 space-y-4">
+                        {cart.map((item) => (
+                            <div
+                                key={item.id}
+                                className="flex items-center gap-3"
+                            >
+                                <span className="text-2xl">{item.emoji}</span>
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-bold">
+                                        {item.name}
+                                    </p>
+                                    <p className="text-xs text-stone-500">
+                                        {money(item.price)}
+                                    </p>
+                                </div>
+                                <div className="rounded-md-lg flex items-center gap-2 bg-stone-100 p-1">
+                                    <button
+                                        onClick={() =>
+                                            changeQuantity(item.id, -1)
+                                        }
+                                        className="h-6 w-6 cursor-pointer font-bold"
+                                    >
+                                        −
+                                    </button>
+                                    <span className="w-3 text-center text-sm font-bold">
+                                        {item.quantity}
+                                    </span>
+                                    <button
+                                        onClick={() =>
+                                            changeQuantity(item.id, 1)
+                                        }
+                                        className="h-6 w-6 cursor-pointer font-bold"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                        <div className="border-t border-stone-100 pt-4">
+                            <div className="flex justify-between font-black">
+                                <span>Total</span>
+                                <span>{money(total)}</span>
+                            </div>
+
+                            <button
+                                onClick={() => setModal("scanner")}
+                                className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-md bg-stone-900 py-2 text-white"
+                            >
+                                <ScanQrCode size={18} />
+                                <span className="font-bold">Pay</span>
+                            </button>
+
+                            {errors.cart && (
+                                <p className="mt-2 text-sm text-red-600">
+                                    {errors.cart}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <>
             <Head title="Campus Canteen" />
@@ -205,29 +300,40 @@ export default function Welcome({ user, menuItems }: Props) {
 
                     <div className="flex gap-2">
                         <button
-                            onClick={() => setModal("scanner")}
-                            className="relative flex cursor-pointer items-center gap-1 rounded-sm bg-stone-900 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-stone-300 md:hidden"
+                            onClick={() => setModal("cart")}
+                            className="relative flex cursor-pointer items-center gap-1 self-stretch rounded-sm bg-orange-400 px-4 py-2 text-sm font-bold text-white md:hidden"
+                            aria-label={`Open cart, ${cartItemCount} items`}
                         >
-                            <ScanQrCode size={18} />
-                            Scan
+                            <ShoppingCart size={18} />
+                            Cart
+                            {cartItemCount > 0 && (
+                                <span className="absolute -top-2 -right-2 grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#fffaf3] bg-stone-900 px-1 text-[11px] leading-none font-bold text-white shadow-sm">
+                                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                                </span>
+                            )}
                         </button>
                     </div>
                 </header>
 
                 <section className="mx-auto grid max-w-7xl gap-7 px-5 pb-10 sm:px-8 md:grid-cols-[1fr_250px] lg:grid-cols-[1fr_350px]">
                     <div>
-                        {cards.map((Card, index) => (
-                            <div
-                                key={index}
-                                className={cn(
-                                    "relative",
-                                    currentIndex === index ? "hidden" : "",
-                                )}
-                            >
-                                <Card />
-                                <CardArrow />
-                            </div>
-                        ))}
+                        <div className="md:hidden">
+                            {cards.map((Card, index) => (
+                                <div
+                                    key={index}
+                                    className={cn(
+                                        "relative",
+                                        currentIndex === index ? "hidden" : "",
+                                    )}
+                                >
+                                    <Card />
+                                    <CardArrow />
+                                </div>
+                            ))}
+                        </div>
+                        <div className="hidden md:block">
+                            <WelcomeCard />
+                        </div>
 
                         <div className="mb-4">
                             <h2 className="text-2xl font-black">
@@ -352,12 +458,12 @@ export default function Welcome({ user, menuItems }: Props) {
             </main>
             {modal && (
                 <div className="fixed inset-0 z-20 grid place-items-center bg-stone-950/45 p-4">
-                    <div className="w-full max-w-md rounded-md bg-white p-6 shadow-2xl">
+                    <div className="relative w-full max-w-md rounded-md bg-white p-6 shadow-2xl">
                         <button
                             onClick={closeModal}
-                            className="float-right text-xl text-stone-400"
+                            className="absolute top-4 right-6 cursor-pointer p-1 text-xl text-stone-400"
                         >
-                            ×
+                            <XIcon size={16} />
                         </button>
                         {modal === "scanner" && (
                             <>
@@ -498,6 +604,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                 )}
                             </>
                         )}
+                        {modal === "cart" && <CartComponent />}
                     </div>
                 </div>
             )}
