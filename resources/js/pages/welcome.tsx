@@ -164,7 +164,7 @@ export default function Welcome({ user, menuItems }: Props) {
                     onClick={() => setModal("scanner")}
                     className="mt-4 flex w-full cursor-pointer items-center justify-center gap-1 rounded-sm bg-white px-4 py-3 font-bold text-stone-900"
                 >
-                    <ScanQrCode size={18} /> Scan
+                    <ScanQrCode size={18} /> Load
                 </button>
             </div>
         );
@@ -208,8 +208,8 @@ export default function Welcome({ user, menuItems }: Props) {
         return (
             <div
                 className={cn(
-                    "rounded-md bg-white shadow-sm ring-1 ring-stone-100",
-                    modal === "cart" ? "shadow-none ring-0" : "",
+                    "rounded-md bg-white p-6 shadow-sm ring-1 ring-stone-100",
+                    modal === "cart" ? "p-0 shadow-none ring-0" : "",
                 )}
             >
                 <p className="mb-1 text-sm font-bold text-orange-600">CART</p>
@@ -373,86 +373,7 @@ export default function Welcome({ user, menuItems }: Props) {
                     </div>
                     <aside className="hidden space-y-5 md:block lg:sticky lg:top-5 lg:h-fit">
                         <BalanceCard />
-                        <div className="rounded-md bg-white p-5 shadow-sm ring-1 ring-stone-100">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-black">
-                                    Your order
-                                </h2>
-                                <span className="rounded-md-full bg-orange-100 px-2 py-1 text-xs font-bold text-orange-700">
-                                    {cart.reduce(
-                                        (sum, item) => sum + item.quantity,
-                                        0,
-                                    )}{" "}
-                                    items
-                                </span>
-                            </div>
-                            {cart.length === 0 ? (
-                                <p className="py-9 text-center text-sm text-stone-400">
-                                    Your cart is waiting for something
-                                    delicious.
-                                </p>
-                            ) : (
-                                <div className="mt-4 space-y-4">
-                                    {cart.map((item) => (
-                                        <div
-                                            key={item.id}
-                                            className="flex items-center gap-3"
-                                        >
-                                            <span className="text-2xl">
-                                                {item.emoji}
-                                            </span>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-bold">
-                                                    {item.name}
-                                                </p>
-                                                <p className="text-xs text-stone-500">
-                                                    {money(item.price)}
-                                                </p>
-                                            </div>
-                                            <div className="rounded-md-lg flex items-center gap-2 bg-stone-100 p-1">
-                                                <button
-                                                    onClick={() =>
-                                                        changeQuantity(
-                                                            item.id,
-                                                            -1,
-                                                        )
-                                                    }
-                                                    className="h-6 w-6 cursor-pointer font-bold"
-                                                >
-                                                    −
-                                                </button>
-                                                <span className="w-3 text-center text-sm font-bold">
-                                                    {item.quantity}
-                                                </span>
-                                                <button
-                                                    onClick={() =>
-                                                        changeQuantity(
-                                                            item.id,
-                                                            1,
-                                                        )
-                                                    }
-                                                    className="h-6 w-6 cursor-pointer font-bold"
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <div className="border-t border-stone-100 pt-4">
-                                        <div className="flex justify-between font-black">
-                                            <span>Total</span>
-                                            <span>{money(total)}</span>
-                                        </div>
-
-                                        {errors.cart && (
-                                            <p className="mt-2 text-sm text-red-600">
-                                                {errors.cart}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        <CartComponent />
                     </aside>
                 </section>
             </main>
@@ -486,7 +407,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                 {!scanning && (
                                     <button
                                         onClick={startCamera}
-                                        className="rounded-md-xl mt-4 w-full bg-stone-900 py-3 font-bold text-white"
+                                        className="mt-4 w-full cursor-pointer rounded-md bg-stone-900 py-3 font-bold text-white"
                                     >
                                         Start camera
                                     </button>
@@ -497,7 +418,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                             stopCamera();
                                             setModal("load");
                                         }}
-                                        className="rounded-md-xl bg-orange-100 py-3 text-sm font-bold text-orange-700"
+                                        className="cursor-pointer rounded-md bg-orange-100 py-3 text-sm font-bold text-orange-700"
                                     >
                                         Demo Load QR
                                     </button>
@@ -506,7 +427,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                             stopCamera();
                                             setModal("pay");
                                         }}
-                                        className="rounded-md-xl bg-stone-100 py-3 text-sm font-bold"
+                                        className="cursor-pointer rounded-md bg-stone-100 py-3 text-sm font-bold"
                                     >
                                         Demo Pay QR
                                     </button>
