@@ -40,9 +40,36 @@ export default function Welcome({ user, menuItems }: Props) {
         setScannerError("");
         setModal(null);
     };
-    const openScanner = (action: "load" | "pay") => {
+    const openScanner = async (action: "load" | "pay") => {
+        const scannerMode = action === "load" ? "scanner-load" : "scanner-pay";
+
         setScannerError("");
-        setModal(action === "load" ? "scanner-load" : "scanner-pay");
+        if (!navigator.mediaDevices?.getUserMedia) {
+            setScannerError(
+                "Camera access requires a supported browser and a secure HTTPS connection.",
+            );
+            setModal(scannerMode);
+            return;
+        }
+
+        try {
+            const permissionStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: "environment" } },
+            });
+            permissionStream.getTracks().forEach((track) => track.stop());
+            setModal(scannerMode);
+        } catch (error) {
+            const isDenied =
+                error instanceof DOMException &&
+                error.name === "NotAllowedError";
+
+            setScannerError(
+                isDenied
+                    ? "Camera permission was denied. Allow camera access in your browser settings, then try again."
+                    : "Unable to access the camera. Check that another app is not using it, then try again.",
+            );
+            setModal(scannerMode);
+        }
     };
     const handleScan = (detectedCodes: { rawValue?: string }[]) => {
         const value = detectedCodes[0]?.rawValue;
@@ -367,8 +394,14 @@ export default function Welcome({ user, menuItems }: Props) {
                                     onError={(error) =>
                                         setScannerError(error.message)
                                     }
-                                    constraints={{ facingMode: "environment" }}
+                                    constraints={{
+                                        facingMode: "environment",
+                                        width: { ideal: 1080 },
+                                        height: { ideal: 1000 },
+                                    }}
                                     formats={["qr_code"]}
+                                    allowMultiple
+                                    scanDelay={750}
                                     sound={false}
                                     classNames={{ container: "mt-5" }}
                                 />
