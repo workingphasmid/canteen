@@ -1,7 +1,13 @@
 import { Head, router, usePage } from "@inertiajs/react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { FormEvent, useMemo, useState } from "react";
-import { ArrowRight, ScanQrCode, ShoppingCart, XIcon } from "lucide-react";
+import {
+    ArrowRight,
+    ChevronDown,
+    ScanQrCode,
+    ShoppingCart,
+    XIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type MenuItem = {
@@ -11,9 +17,12 @@ type MenuItem = {
     price: number;
     emoji: string;
 };
+
+type User = { id: number; name: string; balance: number };
 type CartItem = MenuItem & { quantity: number };
-type Props = { user: { name: string; balance: number }; menuItems: MenuItem[] };
-type ScanMode = "scanner-load" | "scanner-pay" | "load" | "pay" | "cart" | null;
+type Props = { user: User; users: User[]; menuItems: MenuItem[] };
+type ScanMode =
+    "scanner-load" | "scanner-pay" | "load" | "pay" | "cart" | "report" | null;
 const LOAD_QR_VALUE = "canteen://wallet/load";
 const PAY_QR_VALUE = "canteen://order/pay";
 const money = (amount: number) =>
@@ -27,6 +36,7 @@ export default function Welcome({ user, menuItems }: Props) {
     const [modal, setModal] = useState<ScanMode>(null);
     const [amount, setAmount] = useState("");
     const [scannerError, setScannerError] = useState("");
+    const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
     const { errors } = usePage().props as { errors: Record<string, string> };
     const total = useMemo(
         () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -128,6 +138,19 @@ export default function Welcome({ user, menuItems }: Props) {
                     id: item.id,
                     quantity: item.quantity,
                 })),
+            },
+            {
+                onSuccess: () => {
+                    setCart([]);
+                    closeModal();
+                },
+            },
+        );
+    const switchAccount = () =>
+        router.post(
+            "/switch",
+            {
+                id: user.id,
             },
             {
                 onSuccess: () => {
@@ -276,6 +299,53 @@ export default function Welcome({ user, menuItems }: Props) {
         );
     }
 
+    function AccountDropdown() {
+        return (
+            <div className="relative">
+                <button
+                    type="button"
+                    onClick={() => setIsAccountMenuOpen((isOpen) => !isOpen)}
+                    className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm font-bold text-stone-700 hover:bg-orange-50"
+                    aria-expanded={isAccountMenuOpen}
+                    aria-haspopup="menu"
+                >
+                    {user.name}
+                    <ChevronDown
+                        size={16}
+                        className={cn(
+                            "transition-transform",
+                            isAccountMenuOpen && "rotate-180",
+                        )}
+                    />
+                </button>
+
+                {isAccountMenuOpen && (
+                    <div
+                        role="menu"
+                        className="absolute right-0 z-10 mt-2 w-44 rounded-md bg-white p-1 shadow-lg ring-1 ring-stone-200"
+                    >
+                        <button
+                            onClick={switchAccount}
+                            type="button"
+                            role="menuitem"
+                            className="w-full cursor-pointer rounded-sm px-3 py-2 text-left text-sm hover:bg-stone-50"
+                        >
+                            Switch account
+                        </button>
+                        <button
+                            onClick={() => setModal("report")}
+                            type="button"
+                            role="menuitem"
+                            className="w-full cursor-pointer rounded-sm px-3 py-2 text-left text-sm hover:bg-stone-50"
+                        >
+                            Report
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <>
             <Head title="Campus Canteen" />
@@ -285,21 +355,21 @@ export default function Welcome({ user, menuItems }: Props) {
                         <h1 className="text-2xl font-black">Canteen</h1>
                     </div>
 
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setModal("cart")}
-                            className="relative flex cursor-pointer items-center gap-1 self-stretch rounded-sm bg-orange-400 px-4 py-2 text-sm font-bold text-white md:hidden"
-                            aria-label={`Open cart, ${cartItemCount} items`}
-                        >
-                            <ShoppingCart size={18} />
-                            Cart
-                            {cartItemCount > 0 && (
-                                <span className="absolute -top-2 -right-2 grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#fffaf3] bg-stone-900 px-1 text-[11px] leading-none font-bold text-white shadow-sm">
-                                    {cartItemCount > 99 ? "99+" : cartItemCount}
-                                </span>
-                            )}
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => setModal("cart")}
+                        className="relative flex cursor-pointer items-center gap-1 self-stretch rounded-sm bg-orange-400 px-4 py-2 text-sm font-bold text-white md:hidden"
+                        aria-label={`Open cart, ${cartItemCount} items`}
+                    >
+                        <ShoppingCart size={18} />
+                        Cart
+                        {cartItemCount > 0 && (
+                            <span className="absolute -top-2 -right-2 grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#fffaf3] bg-stone-900 px-1 text-[11px] leading-none font-bold text-white shadow-sm">
+                                {cartItemCount > 99 ? "99+" : cartItemCount}
+                            </span>
+                        )}
+                    </button>
+
+                    <AccountDropdown />
                 </header>
 
                 <section className="mx-auto grid max-w-7xl gap-7 px-5 pb-10 sm:px-8 md:grid-cols-[1fr_250px] lg:grid-cols-[1fr_350px]">

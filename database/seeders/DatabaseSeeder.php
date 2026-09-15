@@ -17,9 +17,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::factory()->create([
+            'name' => 'Charles Renan Retes',
+            'email' => 'charles@campus.test',
+            'wallet_balance' => 0,
+        ]);
+
+        User::factory()->create([
             'name' => 'Alex Cruz',
             'email' => 'alex@campus.test',
-            'wallet_balance' => 250,
+            'wallet_balance' => 0,
         ]);
 
         MenuItem::insert([
