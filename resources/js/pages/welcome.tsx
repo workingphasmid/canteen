@@ -20,7 +20,12 @@ type MenuItem = {
 
 type User = { id: number; name: string; balance: number };
 type CartItem = MenuItem & { quantity: number };
-type Props = { user: User; users: User[]; menuItems: MenuItem[] };
+type Props = {
+    user: User;
+    menuItems: MenuItem[];
+    orders: { name: string; total: number }[];
+    loads: { name: string; type: string; amount: number }[];
+};
 type ScanMode =
     "scanner-load" | "scanner-pay" | "load" | "pay" | "cart" | "report" | null;
 const LOAD_QR_VALUE = "canteen://wallet/load";
@@ -31,7 +36,7 @@ const money = (amount: number) =>
         currency: "PHP",
     }).format(amount);
 
-export default function Welcome({ user, menuItems }: Props) {
+export default function Welcome({ user, menuItems, orders, loads }: Props) {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [modal, setModal] = useState<ScanMode>(null);
     const [amount, setAmount] = useState("");
@@ -575,6 +580,47 @@ export default function Welcome({ user, menuItems }: Props) {
                         )}
 
                         {modal === "cart" && <CartComponent />}
+                        {modal === "report" && (
+                            <div className="max-h-[80vh] overflow-y-auto pr-1">
+                                <p className="text-sm font-bold text-orange-600">
+                                    REPORT
+                                </p>
+
+                                <h2 className="mt-2">Transactions</h2>
+                                <div className="mt-1 overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase">
+                                                    Name
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase">
+                                                    Type
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase">
+                                                    Amount
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                            {loads.map((load) => (
+                                                <tr className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
+                                                        {load.name}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                        {load.type}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                        {load.amount}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

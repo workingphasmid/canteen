@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\Log;
 
 class CanteenController extends Controller
 {
@@ -20,12 +19,15 @@ class CanteenController extends Controller
     {
         $user_id = session('current_user_id', 1);
         $user = User::findOrFail($user_id);
-
+        $orders = Order::all();
 
         return Inertia::render('welcome', [
             'user' => ['id' => $user->id, 'name' => $user->name, 'balance' => (float) $user->wallet_balance],
             'menuItems' => MenuItem::query()->where('is_available', true)->orderBy('id')->get()
-                ->map(fn(MenuItem $item) => ['id' => $item->id, 'name' => $item->name, 'description' => $item->description, 'price' => (float) $item->price, 'emoji' => $item->emoji]),
+                ->map(fn (MenuItem $item) => ['id' => $item->id, 'name' => $item->name, 'description' => $item->description, 'price' => (float) $item->price, 'emoji' => $item->emoji]),
+            'orders' => $orders->map(fn (Order $order) => ['name' => User::find($order->user_id)->name, 'total' => $order->total]),
+            'loads' => WalletTransaction::all()->map(fn (WalletTransaction $transaction) => ['name' => User::find($transaction->user_id)->name, 'type' => $transaction->type, 'amount' => (float) $transaction->amount]),
+
         ]);
     }
 
@@ -37,7 +39,7 @@ class CanteenController extends Controller
 
         session(['current_user_id' => $user->id]);
 
-        return redirect()->back()->with('success', 'Switched to ' . $user->name);
+        return back()->with('success', 'Switched to '.$user->name);
     }
 
     public function load(Request $request): RedirectResponse
@@ -67,6 +69,7 @@ class CanteenController extends Controller
                 if (! $item) {
                     throw ValidationException::withMessages(['cart' => 'One or more menu items are unavailable.']);
                 }
+
                 return ['menu_item_id' => $item->id, 'name' => $item->name, 'quantity' => $cartItem['quantity'], 'unit_price' => $item->price, 'subtotal' => $item->price * $cartItem['quantity']];
             });
             $total = $items->sum('subtotal');
@@ -78,7 +81,7 @@ class CanteenController extends Controller
             $order = Order::create(['user_id' => $user->id, 'total' => $total, 'status' => 'paid']);
             $order->items()->createMany($items->all());
             $user->decrement('wallet_balance', $total);
-            WalletTransaction::create(['user_id' => $user->id, 'order_id' => $order->id, 'type' => 'payment', 'amount' => -$total, 'description' => 'Canteen order #' . $order->id]);
+            WalletTransaction::create(['user_id' => $user->id, 'order_id' => $order->id, 'type' => 'payment', 'amount' => -$total, 'description' => 'Canteen order #'.$order->id]);
         });
 
         return back()->with('success', 'Payment complete. Your order has been placed.');
