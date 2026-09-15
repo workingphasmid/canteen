@@ -19,13 +19,11 @@ class CanteenController extends Controller
     {
         $user_id = session('current_user_id', 1);
         $user = User::findOrFail($user_id);
-        $orders = Order::all();
 
         return Inertia::render('welcome', [
-            'user' => ['id' => $user->id, 'name' => $user->name, 'balance' => (float) $user->wallet_balance],
+            'user' => ['id' => $user->id, 'name' => $user->name, 'balance' => (float) $user->wallet_balance, 'qrCode' => $user->qr_code],
             'menuItems' => MenuItem::query()->where('is_available', true)->orderBy('id')->get()
                 ->map(fn (MenuItem $item) => ['id' => $item->id, 'name' => $item->name, 'description' => $item->description, 'price' => (float) $item->price, 'emoji' => $item->emoji]),
-            'orders' => $orders->map(fn (Order $order) => ['name' => User::find($order->user_id)->name, 'total' => $order->total]),
             'loads' => WalletTransaction::all()->map(fn (WalletTransaction $transaction) => ['name' => User::find($transaction->user_id)->name, 'type' => $transaction->type, 'amount' => (float) $transaction->amount]),
 
         ]);

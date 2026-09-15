@@ -18,12 +18,11 @@ type MenuItem = {
     emoji: string;
 };
 
-type User = { id: number; name: string; balance: number };
+type User = { id: number; name: string; balance: number; qrCode: string };
 type CartItem = MenuItem & { quantity: number };
 type Props = {
     user: User;
     menuItems: MenuItem[];
-    orders: { name: string; total: number }[];
     loads: { name: string; type: string; amount: number }[];
 };
 type ScanMode =
@@ -36,7 +35,7 @@ const money = (amount: number) =>
         currency: "PHP",
     }).format(amount);
 
-export default function Welcome({ user, menuItems, orders, loads }: Props) {
+export default function Welcome({ user, menuItems, loads }: Props) {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [modal, setModal] = useState<ScanMode>(null);
     const [amount, setAmount] = useState("");
@@ -86,19 +85,16 @@ export default function Welcome({ user, menuItems, orders, loads }: Props) {
             setModal(scannerMode);
         }
     };
+
+    console.log(user);
     const handleScan = (detectedCodes: { rawValue?: string }[]) => {
         const value = detectedCodes[0]?.rawValue;
         const isLoadScanner = modal === "scanner-load";
-        const expectedValue = isLoadScanner ? LOAD_QR_VALUE : PAY_QR_VALUE;
 
-        if (value === expectedValue) {
+        if (value === user.qrCode) {
             setModal(isLoadScanner ? "load" : "pay");
-        } else if (value === LOAD_QR_VALUE || value === PAY_QR_VALUE) {
-            setScannerError(
-                `This is the ${isLoadScanner ? "Pay" : "Load"} QR code. Please scan the ${isLoadScanner ? "Load" : "Pay"} QR code.`,
-            );
         } else {
-            setScannerError("This QR code is not a canteen Load or Pay code.");
+            setScannerError("This QR code is not for this user.");
         }
     };
     const add = (item: MenuItem) =>

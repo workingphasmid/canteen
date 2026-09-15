@@ -2,10 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\MenuItem;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,12 +21,14 @@ class DatabaseSeeder extends Seeder
             'name' => 'Charles Renan Retes',
             'email' => 'charles@campus.test',
             'wallet_balance' => 0,
+            'qr_code' => Str::uuid(),
         ]);
 
         User::factory()->create([
             'name' => 'Alex Cruz',
             'email' => 'alex@campus.test',
             'wallet_balance' => 0,
+            'qr_code' => Str::uuid(),
         ]);
 
         MenuItem::insert([
