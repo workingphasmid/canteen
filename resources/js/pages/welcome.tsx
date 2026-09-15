@@ -1,5 +1,6 @@
 import { Head, router, usePage } from "@inertiajs/react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Scanner } from "@yudiel/react-qr-scanner";
+import { FormEvent, useMemo, useState } from "react";
 import { ArrowRight, ScanQrCode, ShoppingCart, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +13,9 @@ type MenuItem = {
 };
 type CartItem = MenuItem & { quantity: number };
 type Props = { user: { name: string; balance: number }; menuItems: MenuItem[] };
-type ScanMode = "load" | "pay" | "cart" | "load-display" | "pay-display" | null;
+type ScanMode = "scanner-load" | "scanner-pay" | "load" | "pay" | "cart" | null;
+const LOAD_QR_VALUE = "canteen://wallet/load";
+const PAY_QR_VALUE = "canteen://order/pay";
 const money = (amount: number) =>
     new Intl.NumberFormat("en-PH", {
         style: "currency",
@@ -23,9 +26,7 @@ export default function Welcome({ user, menuItems }: Props) {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [modal, setModal] = useState<ScanMode>(null);
     const [amount, setAmount] = useState("");
-    const [scanning, setScanning] = useState(false);
-    const video = useRef<HTMLVideoElement>(null);
-    const stream = useRef<MediaStream | null>(null);
+    const [scannerError, setScannerError] = useState("");
     const { errors } = usePage().props as { errors: Record<string, string> };
     const total = useMemo(
         () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -35,62 +36,27 @@ export default function Welcome({ user, menuItems }: Props) {
         () => cart.reduce((sum, item) => sum + item.quantity, 0),
         [cart],
     );
-    const stopCamera = () => {
-        stream.current?.getTracks().forEach((track) => track.stop());
-        stream.current = null;
-        setScanning(false);
-    };
     const closeModal = () => {
-        stopCamera();
+        setScannerError("");
         setModal(null);
     };
-    useEffect(() => () => stopCamera(), []);
+    const openScanner = (action: "load" | "pay") => {
+        setScannerError("");
+        setModal(action === "load" ? "scanner-load" : "scanner-pay");
+    };
+    const handleScan = (detectedCodes: { rawValue?: string }[]) => {
+        const value = detectedCodes[0]?.rawValue;
+        const isLoadScanner = modal === "scanner-load";
+        const expectedValue = isLoadScanner ? LOAD_QR_VALUE : PAY_QR_VALUE;
 
-    const startCamera = async () => {
-        if (
-            !navigator.mediaDevices?.getUserMedia ||
-            !("BarcodeDetector" in window)
-        )
-            return;
-        try {
-            stream.current = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "environment" },
-            });
-            if (video.current) {
-                video.current.srcObject = stream.current;
-                await video.current.play();
-            }
-            setScanning(true);
-            const Detector = (
-                window as Window & {
-                    BarcodeDetector: new (options: { formats: string[] }) => {
-                        detect: (
-                            source: HTMLVideoElement,
-                        ) => Promise<{ rawValue: string }[]>;
-                    };
-                }
-            ).BarcodeDetector;
-            const detector = new Detector({ formats: ["qr_code"] });
-            const detect = async () => {
-                if (!stream.current || !video.current) return;
-                const value = (
-                    await detector.detect(video.current)
-                )[0]?.rawValue?.toUpperCase();
-                if (value?.includes("LOAD")) {
-                    stopCamera();
-                    setModal("load");
-                    return;
-                }
-                if (value?.includes("PAY")) {
-                    stopCamera();
-                    setModal("pay");
-                    return;
-                }
-                requestAnimationFrame(detect);
-            };
-            requestAnimationFrame(detect);
-        } catch {
-            setScanning(false);
+        if (value === expectedValue) {
+            setModal(isLoadScanner ? "load" : "pay");
+        } else if (value === LOAD_QR_VALUE || value === PAY_QR_VALUE) {
+            setScannerError(
+                `This is the ${isLoadScanner ? "Pay" : "Load"} QR code. Please scan the ${isLoadScanner ? "Load" : "Pay"} QR code.`,
+            );
+        } else {
+            setScannerError("This QR code is not a canteen Load or Pay code.");
         }
     };
     const add = (item: MenuItem) =>
@@ -155,7 +121,7 @@ export default function Welcome({ user, menuItems }: Props) {
                     {money(user.balance)}
                 </p>
                 <button
-                    onClick={() => setModal("load")}
+                    onClick={() => openScanner("load")}
                     className="mt-4 flex w-full cursor-pointer items-center justify-center gap-1 rounded-sm bg-white px-4 py-3 font-bold text-stone-900"
                 >
                     <ScanQrCode size={18} /> Load
@@ -264,7 +230,7 @@ export default function Welcome({ user, menuItems }: Props) {
                             </div>
 
                             <button
-                                onClick={() => setModal("pay")}
+                                onClick={() => openScanner("pay")}
                                 className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-md bg-stone-900 py-2 text-white"
                             >
                                 <ScanQrCode size={18} />
@@ -380,60 +346,40 @@ export default function Welcome({ user, menuItems }: Props) {
                         >
                             <XIcon size={16} />
                         </button>
-                        {(modal === "load" || modal === "pay") && (
+                        {(modal === "scanner-load" ||
+                            modal === "scanner-pay") && (
                             <>
                                 <p className="text-sm font-bold text-orange-600">
                                     QR SCANNER
                                 </p>
                                 <h2 className="mt-1 text-2xl font-black">
-                                    Scan a canteen code
+                                    Scan the{" "}
+                                    {modal === "scanner-load" ? "Load" : "Pay"}{" "}
+                                    QR code
                                 </h2>
                                 <p className="mt-2 text-sm text-stone-500">
-                                    Use the Load QR to add balance or the Pay QR
-                                    to review your order.
+                                    {modal === "scanner-load"
+                                        ? "Use Load QR code to add balance."
+                                        : "Use Pay QR code to pay your order."}
                                 </p>
-                                <video
-                                    ref={video}
-                                    className="rounded-md-2xl mt-5 aspect-square w-full bg-stone-100 object-cover"
-                                    muted
-                                    playsInline
+                                <Scanner
+                                    onScan={handleScan}
+                                    onError={(error) =>
+                                        setScannerError(error.message)
+                                    }
+                                    constraints={{ facingMode: "environment" }}
+                                    formats={["qr_code"]}
+                                    sound={false}
+                                    classNames={{ container: "mt-5" }}
                                 />
-                                {!scanning && (
-                                    <button
-                                        onClick={startCamera}
-                                        className="mt-4 w-full cursor-pointer rounded-md bg-stone-900 py-3 font-bold text-white"
-                                    >
-                                        Start camera
-                                    </button>
+                                {scannerError && (
+                                    <p className="mt-3 text-sm text-red-600">
+                                        {scannerError}
+                                    </p>
                                 )}
-                                <div className="mt-5">
-                                    {modal === "load" && (
-                                        <button
-                                            onClick={() => {
-                                                stopCamera();
-                                                setModal("load-display");
-                                            }}
-                                            className="w-full cursor-pointer rounded-md bg-orange-100 py-3 text-sm font-bold text-orange-700"
-                                        >
-                                            Demo Load QR
-                                        </button>
-                                    )}
-
-                                    {modal === "pay" && (
-                                        <button
-                                            onClick={() => {
-                                                stopCamera();
-                                                setModal("pay-display");
-                                            }}
-                                            className="w-full cursor-pointer rounded-md bg-stone-100 py-3 text-sm font-bold"
-                                        >
-                                            Demo Pay QR
-                                        </button>
-                                    )}
-                                </div>
                             </>
                         )}
-                        {modal === "load-display" && (
+                        {modal === "load" && (
                             <form onSubmit={submitLoad}>
                                 <p className="text-sm font-bold text-orange-600">
                                     LOAD WALLET
@@ -466,7 +412,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                 </button>
                             </form>
                         )}
-                        {modal === "pay-display" && (
+                        {modal === "pay" && (
                             <>
                                 <p className="text-sm font-bold text-orange-600">
                                     PAY ORDER
@@ -524,6 +470,7 @@ export default function Welcome({ user, menuItems }: Props) {
                                 )}
                             </>
                         )}
+
                         {modal === "cart" && <CartComponent />}
                     </div>
                 </div>
